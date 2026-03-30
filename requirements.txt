@@ -6,3 +6,4 @@ plotly
 requests
 pandas
 numpy
+pyyaml

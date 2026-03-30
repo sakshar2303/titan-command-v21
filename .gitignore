@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+dist/
+build/
 
 # Virtual Environments
 venv/
@@ -10,3 +13,17 @@ env/
 
 # OS-specific
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Old / legacy folders
+titan-command-v8/
+backend/
+frontend/
+server/
+agents/

@@ -3,24 +3,25 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "emergency-ai-v1"
-version = "1.0.0"
-description = "Professional urban crisis management simulator"
+name = "titan-command-v21"
+version = "21.0.0"
+description = "High-fidelity emergency triage simulation for AI agents"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "openenv-core>=0.2.0",
     "fastapi>=0.104.0",
     "pydantic>=2.0.0",
-    "uvicorn>=0.24.0",
+    "uvicorn[standard]>=0.24.0",
     "streamlit",
-    "openai",
+    "plotly",
+    "requests",
+    "pandas",
+    "numpy",
     "pyyaml"
 ]
 
-# This is exactly what the validator is looking for
 [project.scripts]
-openenv-server = "server.app:main"
+titan-command = "main:app"
 
 [tool.setuptools]
-packages = ["server"]
+py-modules = ["main", "my_env", "inference", "app"]

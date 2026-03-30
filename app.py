@@ -2,7 +2,7 @@ import streamlit as st
 import requests, plotly.graph_objects as go, plotly.express as px, time
 
 API_URL = "http://127.0.0.1:7860"
-st.set_page_config(page_title="TITAN COMMAND | v20.5", layout="wide")
+st.set_page_config(page_title="TITAN COMMAND | v21", layout="wide")
 
 # --- 🎨 DARK SCI-FI CSS ---
 st.markdown("<style>.stApp { background-color: #050b14; color: #e0e0e0; } [data-testid='stMetricValue'] { color: #00f2ff !important; text-shadow: 0 0 10px #00f2ff; }</style>", unsafe_allow_html=True)

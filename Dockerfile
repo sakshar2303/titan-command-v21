@@ -20,8 +20,15 @@ COPY . .
 # Set PYTHONPATH so imports resolve correctly
 ENV PYTHONPATH="/app"
 
+# Create a non-root user (HF Spaces runs as uid 1000)
+RUN useradd -m -u 1000 user
+RUN chown -R user:user /app
+
 # Ensure the entrypoint script is executable
 RUN chmod +x run.sh
+
+# Switch to non-root user
+USER user
 
 # Expose port 7860 (FastAPI - publicly accessible on HF Spaces)
 # and port 8000 (Streamlit - internal dashboard)
