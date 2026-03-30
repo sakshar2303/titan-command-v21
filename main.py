@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from my_env import EmergencyEnv, Action
-import uvicorn
+
 
 app = FastAPI()
 
