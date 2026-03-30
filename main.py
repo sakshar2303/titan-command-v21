@@ -6,9 +6,10 @@ import uvicorn
 app = FastAPI()
 
 # --- 1. ADD CORS MIDDLEWARE (CRITICAL FOR SCALER CHECKS) ---
+# This allows the Scaler automated grader to talk to your API safely.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows Scaler's automated grader to connect
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,18 +38,19 @@ def get_status():
     }
 
 # --- 2. ENSURE RESET RETURNS THE OBSERVATION ---
+# The OpenEnv grader pings this to see if the environment is ready.
 @app.post("/reset")
 def reset():
     observation = sim.reset()
-    return observation  # The grader expects the initial state here
+    return observation  # MUST return the initial state/observation dictionary
 
 @app.post("/dispatch")
 def dispatch(action: Action):
-    # step() usually returns (obs, reward, done, info) in OpenEnv
+    # step() returns (observation, reward, done, info)
     result = sim.step(action)
     return {"ok": True, "result": result}
 
 # --- 3. FIX HOST FOR DOCKER COMPATIBILITY ---
 if __name__ == "__main__":
-    # Changed from 127.0.0.1 to 0.0.0.0 for Docker/Hugging Face access
+    # 0.0.0.0 allows the app to be reachable from outside the container.
     uvicorn.run(app, host="0.0.0.0", port=8000)
