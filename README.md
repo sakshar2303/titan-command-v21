@@ -22,4 +22,4 @@ A high-fidelity emergency triage simulation for AI agents and human commanders t
 |--------|------|-------------|
 | `POST` | `/reset` | Reset the environment, returns initial observation |
 | `GET`  | `/status` | Get current simulation state |
-| `POST` | `/dispatch` | Dispatch a unit to an incident |
+| `POST` | `/dispatch` | Dispatch a unit to an incident | 
