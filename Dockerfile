@@ -30,8 +30,8 @@ RUN chmod +x run.sh
 # Switch to non-root user
 USER user
 
-# Expose port 7860 (FastAPI - publicly accessible on HF Spaces)
-# and port 8000 (Streamlit - internal dashboard)
+# Expose port 7860 (Streamlit HUD - publicly accessible on HF Spaces)
+# and port 8000 (FastAPI API - internal backend)
 EXPOSE 7860 8000
 
 # Launch via the startup script

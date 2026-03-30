@@ -14,8 +14,8 @@ app_port: 7860
 A high-fidelity emergency triage simulation for AI agents and human commanders to manage urban crisis response.
 
 ## 🚀 Architecture
-1. **Backend** (FastAPI) runs on port `7860` — publicly exposed on HF Spaces.
-2. **Frontend** (Streamlit HUD) runs on port `8000` — internal dashboard.
+1. **Frontend** (Streamlit HUD) runs on port `7860` — publicly exposed on HF Spaces.
+2. **Backend** (FastAPI) runs on port `8000` — internal API server.
 
 ## 📡 API Endpoints
 | Method | Path | Description |
