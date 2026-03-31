@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from my_env import EmergencyEnv, Action
+from backend.my_env import EmergencyEnv, Action
 
 app = FastAPI(title="Titan Command v21", version="21.0.0")
 

@@ -25,5 +25,4 @@ dependencies = [
 server = "server.app:main"
 
 [tool.setuptools]
-packages = ["server"]
-py-modules = ["main", "my_env", "inference", "app"]
+packages = ["backend", "frontend", "server"]

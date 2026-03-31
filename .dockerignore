@@ -12,8 +12,7 @@ build/
 
 # Legacy/unused directories
 titan-command-v8/
-backend/
-frontend/
+
 agents/
 
 # IDE files

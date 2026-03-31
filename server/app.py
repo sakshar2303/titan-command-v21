@@ -9,7 +9,7 @@ import os
 # Ensure project root is on the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from main import app  # noqa: E402
+from backend.main import app  # noqa: E402
 
 
 def main():

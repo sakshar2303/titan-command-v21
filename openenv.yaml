@@ -7,7 +7,7 @@ description: "A high-fidelity emergency triage simulation featuring financial sc
 
 # --- ENTRYPOINT RESOLUTION ---
 # This points to: Folder.Subfolder.FileName:ClassName
-entrypoint: "my_env:EmergencyEnv"
+entrypoint: "backend.my_env:EmergencyEnv"
 
 # --- ENVIRONMENT SPECIFICATIONS ---
 render_modes:

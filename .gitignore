@@ -23,6 +23,5 @@ Thumbs.db
 
 # Old / legacy folders
 titan-command-v8/
-backend/
-frontend/
+
 agents/

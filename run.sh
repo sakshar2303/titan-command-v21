@@ -5,7 +5,7 @@ echo "=== TITAN COMMAND v21 — Restoring Tactical HUD ==="
 
 # 1. Start FastAPI on port 8000 (Internal API port)
 echo "[1/2] Starting FastAPI backend on port 8000..."
-uvicorn main:app --host 0.0.0.0 --port 8000 &
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
 FASTAPI_PID=$!
 
 # 2. Wait until FastAPI is confirmed ready
@@ -26,7 +26,7 @@ done
 
 # 3. Start Streamlit dashboard on port 7860 (The PUBLIC HF Port)
 echo "[2/2] Starting Streamlit dashboard on public port 7860..."
-streamlit run app.py \
+streamlit run frontend/app.py \
   --server.port 7860 \
   --server.address 0.0.0.0 \
   --server.headless true \

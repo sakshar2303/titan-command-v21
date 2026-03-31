@@ -3,7 +3,7 @@ Inference module for Titan Command Emergency Triage Environment.
 Provides the agent logic for dispatching units to incidents.
 """
 
-from my_env import EmergencyEnv, Action
+from backend.my_env import EmergencyEnv, Action
 
 
 def get_best_action(env: EmergencyEnv) -> Action | None:
