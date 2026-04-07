@@ -41,6 +41,13 @@ dependencies:
     - requests
     - pandas
 
+# --- REQUIRED EVALUATOR ENVIRONMENT VARIABLES ---
+# The hackathon evaluator actively injects these parameters during testing.
+env:
+  API_BASE_URL: "https://api.openai.com/v1"
+  MODEL_NAME: "gpt-4o-mini"
+  HF_TOKEN: "YOUR_HF_TOKEN"
+
 # --- METADATA ---
 author: "Commander Sakshar"
 license: "MIT"
