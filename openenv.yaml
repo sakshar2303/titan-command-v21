@@ -29,6 +29,21 @@ action_space:
     - "2: Dispatch Fire Truck"
     - "3: Dispatch Ambulance"
 
+# --- TASKS WITH GRADERS ---
+tasks:
+  - id: "task_budget"
+    name: "Budget Preservation"
+    description: "Maintain the budget to ensure continued operations."
+    grader: "backend.my_env:grade_budget"
+  - id: "task_integrity"
+    name: "Sector Integrity"
+    description: "Prevent sector integrity from falling to 0."
+    grader: "backend.my_env:grade_integrity"
+  - id: "task_lives"
+    name: "Lives Saved"
+    description: "Save as many lives as possible during the crisis."
+    grader: "backend.my_env:grade_lives_saved"
+
 # --- SYSTEM DEPENDENCIES ---
 dependencies:
   python: ">=3.10"

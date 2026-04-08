@@ -178,3 +178,21 @@ class EmergencyEnv:
     def get_priority_score(self, inc: Incident):
         """Neural Priority Score used by Auto-Pilot"""
         return round((inc.severity * 2.5) + (inc.population / 400.0), 2)
+
+# --- GRADERS ---
+def grade_budget(env: EmergencyEnv) -> float:
+    """Grades performance based on remaining budget. Score must be strictly in (0, 1)."""
+    # Normalize between 0 and 1, ensuring it's not exactly 0.0 or 1.0
+    score = getattr(env, "budget", 0) / 120000.0
+    return float(max(0.01, min(0.99, score)))
+
+def grade_integrity(env: EmergencyEnv) -> float:
+    """Grades performance based on sector integrity. Score must be strictly in (0, 1)."""
+    score = getattr(env, "sector_integrity", 0) / 100.0
+    return float(max(0.01, min(0.99, score)))
+
+def grade_lives_saved(env: EmergencyEnv) -> float:
+    """Grades performance based on lives saved. Score must be strictly in (0, 1)."""
+    # Just choose a max expected value like 10000 to normalize against
+    score = getattr(env, "lives_saved", 0) / 10000.0
+    return float(max(0.01, min(0.99, score)))
