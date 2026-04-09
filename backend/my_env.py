@@ -181,32 +181,45 @@ class EmergencyEnv:
 
 # --- GRADERS ---
 def _extract_metric(env, key, default):
-    if hasattr(env, key):
-        return float(getattr(env, key))
-    elif isinstance(env, dict) and key in env:
-        return float(env[key])
-    elif isinstance(env, list) and len(env) > 0 and isinstance(env[-1], dict) and key in env[-1]:
-        return float(env[-1][key])
+    try:
+        if hasattr(env, key):
+            return float(getattr(env, key))
+        elif isinstance(env, dict) and key in env:
+            return float(env[key])
+        elif isinstance(env, list) and len(env) > 0 and isinstance(env[-1], dict) and key in env[-1]:
+            return float(env[-1][key])
+    except Exception:
+        pass
     return float(default)
+
+def _safe_sigmoid(x: float) -> float:
+    try:
+        if math.isnan(x) or math.isinf(x):
+            return 0.5
+        x = max(-500.0, min(500.0, x))
+        return 1.0 / (1.0 + math.exp(-x))
+    except Exception:
+        return 0.5
 
 def grade_budget(env) -> float:
     """Grades performance based on remaining budget. Score must be strictly in (0, 1)."""
     val = _extract_metric(env, "budget", 0)
-    # Scale: 0 -> -3, 120000 -> 3 (sigmoid range approx 0.04 to 0.95)
     x = (val / 120000.0) * 6.0 - 3.0
-    # Add a tiny epsilon clamp just in case of floating point anomalies
-    return float(max(1e-4, min(1.0 - 1e-4, 1.0 / (1.0 + math.exp(-x)))))
+    score = _safe_sigmoid(x)
+    return float(max(1e-4, min(1.0 - 1e-4, score)))
 
 def grade_integrity(env) -> float:
     """Grades performance based on sector integrity. Score must be strictly in (0, 1)."""
-    val = _extract_metric(env, "sector_integrity", 0)
-    # Scale: 0 -> -3, 100 -> 3
+    val = _extract_metric(env, "sector_integrity", None)
+    if val is None:
+        val = _extract_metric(env, "integrity", 0)
     x = (val / 100.0) * 6.0 - 3.0
-    return float(max(1e-4, min(1.0 - 1e-4, 1.0 / (1.0 + math.exp(-x)))))
+    score = _safe_sigmoid(x)
+    return float(max(1e-4, min(1.0 - 1e-4, score)))
 
 def grade_lives_saved(env) -> float:
     """Grades performance based on lives saved. Score must be strictly in (0, 1)."""
     val = _extract_metric(env, "lives_saved", 0)
-    # Scale: 0 -> -3, 5000 -> 3
     x = (val / 5000.0) * 6.0 - 3.0
-    return float(max(1e-4, min(1.0 - 1e-4, 1.0 / (1.0 + math.exp(-x)))))
+    score = _safe_sigmoid(x)
+    return float(max(1e-4, min(1.0 - 1e-4, score)))
