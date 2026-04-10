@@ -204,12 +204,17 @@ def _extract_metric(env, key, default=0.0):
                 return float(env["integrity"])
             if key == "integrity" and "sector_integrity" in env:
                 return float(env["sector_integrity"])
+            if key == "budget" and "remaining_budget" in env:
+                return float(env["remaining_budget"])
+            if key == "lives_saved" and "saved" in env:
+                return float(env["saved"])
         
         # 3. Try list access (History or Trajectory)
         if isinstance(env, list) and len(env) > 0:
             last_step = env[-1]
             if isinstance(last_step, dict) and key in last_step:
                 return float(last_step[key])
+            # Check for direct metric access in nested structure if needed
                 
     except (ValueError, TypeError, KeyError):
         pass
@@ -217,35 +222,50 @@ def _extract_metric(env, key, default=0.0):
     return float(default)
 
 def _safe_sigmoid(x: float) -> float:
+    """Logistic sigmoid with safe range for float precision. Result in (0.0, 1.0)."""
     try:
         if math.isnan(x) or math.isinf(x):
             return 0.5
+        # Cap x to avoid over/underflow in exp
         x = max(-500.0, min(500.0, x))
         return 1.0 / (1.0 + math.exp(-x))
     except Exception:
         return 0.5
 
-def grade_budget(env) -> float:
-    """Grades performance based on remaining budget. Score strictly in (0, 1)."""
-    val = _extract_metric(env, "budget", 120000.0)
-    # Normalize: 120k -> 3.0, 60k -> 0.0, 0 -> -3.0
-    x = (val / 120000.0) * 6.0 - 3.0
-    score = _safe_sigmoid(x)
-    # Clamp to [0.01, 0.99] to ensure it passes 'strictly between 0 and 1'
+def _clamp_score(score: float) -> float:
+    """Ensures score is strictly within (0.01, 0.99) for evaluator compliance."""
     return float(max(0.01, min(0.99, score)))
+
+def grade_budget(env) -> float:
+    """Grades performance based on remaining budget. Range: (0, 1)"""
+    val = _extract_metric(env, "budget", 120000.0)
+    # 120k -> ~0.95, 60k -> ~0.50, 0 -> ~0.05
+    x = (val / 120000.0) * 6.0 - 3.0
+    return _clamp_score(_safe_sigmoid(x))
 
 def grade_integrity(env) -> float:
-    """Grades performance based on sector integrity. Score strictly in (0, 1)."""
+    """Grades performance based on sector integrity. Range: (0, 1)"""
     val = _extract_metric(env, "sector_integrity", 100.0)
-    # Normalize: 100 -> 3.0, 50 -> 0.0, 0 -> -3.0
+    # 100 -> ~0.95, 50 -> ~0.50, 0 -> ~0.05
     x = (val / 100.0) * 6.0 - 3.0
-    score = _safe_sigmoid(x)
-    return float(max(0.01, min(0.99, score)))
+    return _clamp_score(_safe_sigmoid(x))
 
 def grade_lives_saved(env) -> float:
-    """Grades performance based on lives saved. Score strictly in (0, 1)."""
+    """Grades performance based on total lives saved. Range: (0, 1)"""
     val = _extract_metric(env, "lives_saved", 0.0)
-    # Normalize: 5000 -> 3.0, 2500 -> 0.0, 0 -> -3.0
+    # 5000+ -> ~0.95, 2500 -> ~0.50, 0 -> ~0.05
     x = (val / 5000.0) * 6.0 - 3.0
-    score = _safe_sigmoid(x)
-    return float(max(0.01, min(0.99, score)))
+    return _clamp_score(_safe_sigmoid(x))
+
+def grade_efficiency(env) -> float:
+    """Grades efficiency (lives saved per 10k budget spent). Range: (0, 1)"""
+    lives = _extract_metric(env, "lives_saved", 0.0)
+    budget_used = 120000.0 - _extract_metric(env, "budget", 120000.0)
+    
+    if budget_used <= 1000: # Minimal spending is efficient
+        return 0.95
+        
+    efficiency = lives / (budget_used / 10000.0)
+    # Target: 5 lives per 10k budget.
+    x = (efficiency / 5.0) * 4.0 - 2.0
+    return _clamp_score(_safe_sigmoid(x))

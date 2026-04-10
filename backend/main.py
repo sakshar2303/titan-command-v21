@@ -29,7 +29,22 @@ def root():
 def get_tasks():
     """Returns the tasks defined in openenv.yaml for the validator."""
     try:
-        yaml_path = os.path.join(os.path.dirname(__file__), "..", "openenv.yaml")
+        # Check multiple potential locations for openenv.yaml
+        possible_paths = [
+            os.path.join(os.path.dirname(__file__), "..", "openenv.yaml"),
+            os.path.join(os.getcwd(), "openenv.yaml"),
+            "/app/openenv.yaml"
+        ]
+        
+        yaml_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                yaml_path = path
+                break
+        
+        if not yaml_path:
+            return {"error": "openenv.yaml not found"}
+            
         with open(yaml_path, "r") as f:
             config = yaml.safe_load(f)
             return config.get("tasks", [])
