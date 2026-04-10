@@ -1,65 +1,59 @@
-import math
+"""
+tasks/graders.py — Titan Command v21
+Grader functions for OpenEnv Phase 2 evaluation.
 
-def _extract_metric(env, key, default=0.0):
+CRITICAL RULE: All scores must be STRICTLY between 0 and 1.
+               Never return exactly 0.0 or exactly 1.0.
+               We use max(0.01, min(0.99, raw_score)) to enforce this.
+"""
+
+
+def _clamp(value: float) -> float:
+    """Clamp a score to strictly (0, 1) — never 0.0, never 1.0."""
+    return max(0.01, min(0.99, float(value)))
+
+
+def grade_budget(env_state: dict) -> float:
     """
-    Extracts a numeric metric from an environment object, observation dict, or list of steps.
+    Task 1 — Budget Preservation
+    Score how well the agent preserved the budget.
+    env_state must contain 'budget' (current) and optionally 'initial_budget'.
+    Score = current_budget / initial_budget, clamped to (0.01, 0.99).
     """
-    try:
-        if env is None:
-            return float(default)
-        
-        # 1. Try attribute access (Environment object)
-        if hasattr(env, key):
-            val = getattr(env, key)
-            if val is not None:
-                return float(val)
-        
-        # 2. Try dictionary access (Observation dict)
-        if isinstance(env, dict):
-            if key in env:
-                return float(env[key])
-            if key == "sector_integrity" and "integrity" in env:
-                return float(env["integrity"])
-            if key == "integrity" and "sector_integrity" in env:
-                return float(env["sector_integrity"])
-        
-        # 3. Try list access (History or Trajectory)
-        if isinstance(env, list) and len(env) > 0:
-            last_step = env[-1]
-            if isinstance(last_step, dict) and key in last_step:
-                return float(last_step[key])
-                
-    except (ValueError, TypeError, KeyError):
-        pass
-    
-    return float(default)
+    budget = env_state.get("budget", 0)
+    initial_budget = env_state.get("initial_budget", 200_000)
 
-def _safe_sigmoid(x: float) -> float:
-    try:
-        if math.isnan(x) or math.isinf(x):
-            return 0.5
-        x = max(-500.0, min(500.0, x))
-        return 1.0 / (1.0 + math.exp(-x))
-    except Exception:
-        return 0.5
+    if initial_budget <= 0:
+        return 0.5  # fallback — safely in range
 
-def grade_budget(env) -> float:
-    """Grades performance based on remaining budget. Range: [0.01, 0.99]"""
-    val = _extract_metric(env, "budget", 120000.0)
-    x = (val / 120000.0) * 6.0 - 3.0
-    score = _safe_sigmoid(x)
-    return float(max(0.01, min(0.99, score)))
+    raw = budget / initial_budget
+    return _clamp(raw)
 
-def grade_integrity(env) -> float:
-    """Grades performance based on sector integrity. Range: [0.01, 0.99]"""
-    val = _extract_metric(env, "sector_integrity", 100.0)
-    x = (val / 100.0) * 6.0 - 3.0
-    score = _safe_sigmoid(x)
-    return float(max(0.01, min(0.99, score)))
 
-def grade_lives_saved(env) -> float:
-    """Grades performance based on lives saved. Range: [0.01, 0.99]"""
-    val = _extract_metric(env, "lives_saved", 0.0)
-    x = (val / 5000.0) * 6.0 - 3.0
-    score = _safe_sigmoid(x)
-    return float(max(0.01, min(0.99, score)))
+def grade_integrity(env_state: dict) -> float:
+    """
+    Task 2 — Sector Integrity
+    Score how well the agent maintained sector integrity (0–100).
+    Score = integrity / 100, clamped to (0.01, 0.99).
+    """
+    integrity = env_state.get("integrity", 50)
+
+    raw = integrity / 100.0
+    return _clamp(raw)
+
+
+def grade_lives_saved(env_state: dict) -> float:
+    """
+    Task 3 — Lives Saved
+    Score the fraction of lives saved out of total lives at risk.
+    env_state must contain 'lives_saved' and 'total_lives'.
+    Score = lives_saved / total_lives, clamped to (0.01, 0.99).
+    """
+    lives_saved = env_state.get("lives_saved", 0)
+    total_lives = env_state.get("total_lives", 1)
+
+    if total_lives <= 0:
+        return 0.5  # fallback — safely in range
+
+    raw = lives_saved / total_lives
+    return _clamp(raw)
