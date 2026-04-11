@@ -1,16 +1,24 @@
 """
-Main entrypoint for inference, expected by the Hackathon OpenEnv evaluator.
-CRITICAL: Must print task scores as JSON so the evaluator can parse them.
+inference.py - Titan Command v21
+Root-level inference script for OpenEnv hackathon evaluator.
+Output format strictly follows the required specification.
 """
 import os
 import sys
 import json
 import traceback
 
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
+from openai import OpenAI
+
+# --- Required environment variables ---
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN     = os.getenv("HF_TOKEN")
+
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
+client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 try:
     from backend.my_env import (
@@ -18,109 +26,105 @@ try:
         grade_budget, grade_integrity, grade_lives_saved, grade_efficiency
     )
 except ImportError as e:
-    print(f"Error importing backend/my_env.py: {e}", file=sys.stderr)
+    print(f"[END] success=false steps=0 rewards=0.00", flush=True)
     sys.exit(1)
 
 
 def main():
+    task_name = "emergency-triage"
+    env_name  = "titan-command-v21"
+
+    env = EmergencyEnv()
+    env.reset()
+
+    # [START] line — required exactly once
+    print(f"[START] task={task_name} env={env_name} model={MODEL_NAME}", flush=True)
+
+    rewards = []
+    success = False
+
     try:
-        # Hackathon environment injection
-        api_base_url = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-        model_name   = os.getenv("MODEL_NAME", "gpt-4o-mini")
-        hf_token     = os.getenv("HF_TOKEN")
-
-        client = None
-        if OpenAI is not None:
-            client = OpenAI(
-                base_url=api_base_url,
-                api_key=hf_token or "dummy_token_to_prevent_crash",
-            )
-
-        env = EmergencyEnv()
-        obs = env.reset()
-
-        print("[START]")
-
-        for step in range(100):
+        for step in range(1, 101):
             if env.steps_taken >= 100 or env.sector_integrity <= 0:
                 break
 
-            action_data = None
-
-            # Try LLM action; silently fall back to passive pulse on any failure
-            if client is not None:
-                try:
-                    prompt = (
-                        f"You are commander. Current observation: {json.dumps(obs)}. "
-                        f"Available units: {env.unit_ready}. "
-                        "Respond with JSON formatted exactly as: "
-                        '{"incident_id": <int_id>, "unit_type": "ambulance" | "fire_truck" | "helicopter"}. '
-                        'If no action is viable, return {"incident_id": -1, "unit_type": "none"}.'
-                    )
-                    response = client.chat.completions.create(
-                        model=model_name,
-                        messages=[
-                            {"role": "system", "content": "You are a crisis management AI. Always output valid JSON."},
-                            {"role": "user",   "content": prompt}
-                        ],
-                        response_format={"type": "json_object"},
-                        max_tokens=64
-                    )
-                    action_data = json.loads(response.choices[0].message.content)
-                except Exception:
-                    pass
-
+            obs = env._get_observation()
+            action_str = "none"
+            error_str  = "null"
             action_obj = None
-            if (action_data
-                    and action_data.get("incident_id", -1) != -1
-                    and action_data.get("unit_type", "none") != "none"):
-                action_obj = Action(
-                    incident_id=action_data["incident_id"],
-                    unit_type=action_data["unit_type"]
+
+            # LLM action
+            try:
+                prompt = (
+                    f"You are commander. Observation: {json.dumps(obs)}. "
+                    f"Available units: {env.unit_ready}. "
+                    "Respond with JSON: "
+                    '{\"incident_id\": <int>, \"unit_type\": \"ambulance\"|\"fire_truck\"|\"helicopter\"}. '
+                    'If no action: {\"incident_id\": -1, \"unit_type\": \"none\"}.'
                 )
+                response = client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": "You are a crisis management AI. Always output valid JSON."},
+                        {"role": "user",   "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    max_tokens=64
+                )
+                action_data = json.loads(response.choices[0].message.content)
+                inc_id   = action_data.get("incident_id", -1)
+                unit     = action_data.get("unit_type", "none")
+
+                if inc_id != -1 and unit != "none":
+                    action_obj = Action(incident_id=inc_id, unit_type=unit)
+                    action_str = f"dispatch(incident={inc_id},unit={unit})"
+                else:
+                    action_str = "passive_pulse"
+
+            except Exception as ex:
+                error_str  = str(ex).replace("\n", " ")[:80]
+                action_str = "passive_pulse"
 
             env.step(action_obj)
-            obs = env._get_observation()
-            print(f"[STEP] {step}")
 
-        print("[END]")
+            reward = 0.00
+            done   = (env.steps_taken >= 100 or env.sector_integrity <= 0)
+            rewards.append(reward)
 
-        # ------------------------------------------------------------------
-        # CRITICAL: Call graders and output scores as JSON.
-        # The evaluator reads this to validate task scores.
-        # ------------------------------------------------------------------
-        task_scores = {
-            "task_1": grade_budget(env),
-            "task_2": grade_integrity(env),
-            "task_3": grade_lives_saved(env),
-            "task_4": grade_efficiency(env),
-        }
+            # [STEP] line — required once per step
+            print(
+                f"[STEP] step={step} action={action_str} "
+                f"reward={reward:.2f} done={'true' if done else 'false'} "
+                f"error={error_str}",
+                flush=True
+            )
 
-        # Print the episode summary (human-readable)
-        print("=== Episode Complete ===")
-        print(f"  budget:    {env.budget}")
-        print(f"  integrity: {env.sector_integrity:.2f}")
-        print(f"  lives_saved: {env.lives_saved}")
-        print(f"  steps_taken: {env.steps_taken}")
+            if done:
+                break
 
-        # REQUIRED: Print scores as JSON on its own line so the evaluator finds it
-        print("TASK_SCORES:", json.dumps(task_scores))
-
-        # Also dump full result JSON (belt-and-suspenders)
-        result = {
-            "task_scores": task_scores,
-            "budget": int(env.budget),
-            "lives_saved": int(env.lives_saved),
-            "steps_taken": int(env.steps_taken),
-            "integrity": float(env.sector_integrity),
-            "incidents_remaining": len(env.incidents),
-        }
-        print(json.dumps(result))
+        success = env.sector_integrity > 0
 
     except Exception as e:
-        print(f"Inference encountered an unhandled exception: {e}", file=sys.stderr)
-        traceback.print_exc()
-        sys.exit(1)
+        success = False
+        traceback.print_exc(file=sys.stderr)
+
+    # [END] line — always emitted
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.00"
+    print(
+        f"[END] success={'true' if success else 'false'} "
+        f"steps={len(rewards)} rewards={rewards_str}",
+        flush=True
+    )
+
+    # --- Task scores for evaluator ---
+    task_scores = {
+        "task_1": grade_budget(env),
+        "task_2": grade_integrity(env),
+        "task_3": grade_lives_saved(env),
+        "task_4": grade_efficiency(env),
+    }
+    print("TASK_SCORES:", json.dumps(task_scores), flush=True)
+    print(json.dumps({"task_scores": task_scores}), flush=True)
 
 
 if __name__ == "__main__":
