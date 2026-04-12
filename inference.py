@@ -13,12 +13,17 @@ except ImportError:
     OpenAI = None
 
 try:
-    from backend.my_env import (
-        EmergencyEnv, Action,
+    from backend.my_env import EmergencyEnv, Action
+except ImportError as e:
+    print(f"Error importing backend/my_env.py: {e}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    from tasks.graders import (
         grade_budget, grade_integrity, grade_lives_saved, grade_efficiency
     )
 except ImportError as e:
-    print(f"Error importing backend/my_env.py: {e}", file=sys.stderr)
+    print(f"Error importing tasks/graders.py: {e}", file=sys.stderr)
     sys.exit(1)
 
 

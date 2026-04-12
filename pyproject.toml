@@ -25,4 +25,4 @@ dependencies = [
 server = "server.app:main"
 
 [tool.setuptools]
-packages = ["backend", "frontend", "server"]
+packages = ["backend", "frontend", "server", "tasks"]
